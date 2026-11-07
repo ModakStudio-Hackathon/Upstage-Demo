@@ -1,0 +1,79 @@
+/* 1. Vite 기본 설정(가운데 정렬 강제) 초기화 및 덮어쓰기 */
+#root {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  background-color: #f6f5fa;
+  color: #1e1b2e;
+  margin: 0;
+  padding: 20px;
+  display: block; /* Vite의 기본 flex 강제 해제 */
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* 2. 헤더 및 버튼 (좌우 배치) */
+.header {
+  background-color: #5e35b1;
+  color: white;
+  padding: 24px 32px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+}
+.header h1 { margin: 0 0 8px 0; font-size: 24px; }
+.header p { margin: 0; color: #ede7f6; font-size: 15px; }
+.header-actions { display: flex; gap: 10px; }
+.btn-secondary { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+.btn-secondary:hover { background: rgba(255,255,255,0.3); }
+
+/* 3. 통계 대시보드 */
+.stats-dashboard { display: flex; gap: 16px; margin-bottom: 24px; width: 100%; }
+.stat-card { flex: 1; background: white; padding: 20px; border-radius: 12px; border: 1px solid #d7d2e6; display: flex; flex-direction: column; gap: 8px; font-weight: bold; color: #6c757d; text-align: left; }
+.stat-card span { font-size: 24px; color: #1e1b2e; }
+.stat-card.warning span { color: #f57f17; }
+.stat-card.success span { color: #2e7d32; }
+
+/* 4. 업로드 영역 */
+.upload-section { background: white; padding: 24px 32px; border-radius: 12px; margin-bottom: 24px; border: 1px solid #d7d2e6; text-align: left; }
+.upload-section h2 { margin: 0 0 16px 0; font-size: 18px; color: #5e35b1; }
+.upload-form { display: flex; gap: 16px; align-items: center; justify-content: flex-start; }
+.file-input { border: 1px dashed #d7d2e6; padding: 10px; border-radius: 6px; flex: 1; max-width: 400px; cursor: pointer; }
+.submit-btn { background: #7c4dff; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px;}
+.submit-btn:disabled { background: #b39ddb; cursor: not-allowed; }
+
+/* 5. 테이블 영역 */
+.result-section { background: white; padding: 24px 32px; border-radius: 12px; border: 1px solid #d7d2e6; text-align: left; }
+.result-section h2 { margin: 0 0 20px 0; font-size: 18px; }
+.table-container { overflow-x: auto; width: 100%; }
+table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+th, td { padding: 14px 12px; border-bottom: 1px solid #ede7f6; vertical-align: middle; }
+th { background: #f6f5fa; color: #5e35b1; font-weight: bold; white-space: nowrap; }
+.row-warning { background-color: #fffde7; }
+
+/* 배지 및 액션 버튼 */
+.account-badge { background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-weight: 600; color: #4b5563; }
+.status-badge { padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; display: inline-block; text-align: center; min-width: 80px; }
+.approved { background: #e8f5e9; color: #2e7d32; }
+.review { background: #fff8e1; color: #f57f17; }
+.rejected { background: #ffebee; color: #c62828; }
+.reason-text { color: #6c757d; font-size: 13px; max-width: 250px; line-height: 1.4; }
+.approve-btn { background: #f57f17; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
+.approve-btn:hover { background: #e65100; }

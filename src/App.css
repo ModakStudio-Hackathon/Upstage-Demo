@@ -124,6 +124,10 @@
 .primary-button:hover:not(:disabled) { transform: translateY(-1px); background: #5f52c2; }
 .primary-button:disabled { background: #c2bedb; box-shadow: none; cursor: not-allowed; }
 .privacy-note { margin: 10px 0 0 2px; color: #9896a2; font-size: 10px; }
+.contact-sheet-preview { margin-top: 13px; padding-top: 12px; border-top: 1px solid #efedf5; color: #6f6b7c; font-size: 11px; }
+.contact-sheet-preview summary { width: fit-content; cursor: pointer; font-weight: 700; }
+.contact-sheet-preview-frame { max-height: 560px; overflow: auto; margin-top: 12px; border: 1px solid #e5e3ed; border-radius: 8px; background: #f5f4f8; }
+.contact-sheet-preview-frame img { display: block; width: 100%; height: auto; }
 .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.45); border-top-color: white; border-radius: 50%; animation: spin 700ms linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -135,6 +139,7 @@
 .draft-panel { margin-bottom: 16px; border-color: #dcd7fb; box-shadow: 0 8px 26px rgba(87, 75, 166, 0.07); }
 .draft-heading { align-items: flex-start; }
 .draft-help { margin: 9px 0 18px; color: #777587; font-size: 12px; }
+.agent-output-note { margin: -5px 0 15px; padding: 10px 12px; border-radius: 8px; background: #fff7e8; color: #91642b; font-size: 11px; line-height: 1.55; }
 .draft-list { display: grid; gap: 14px; }
 .draft-item { padding: 18px; border: 1px solid #eeecf5; border-radius: 12px; background: #fdfcff; }
 .draft-file-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 17px; }

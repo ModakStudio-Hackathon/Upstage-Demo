@@ -116,7 +116,8 @@
 .upload-icon { width: 38px; height: 38px; display: grid; place-items: center; flex: 0 0 38px; border-radius: 11px; background: #efedff; color: #7568d0; font-size: 24px; font-weight: 400; }
 .upload-copy { min-width: 0; display: grid; gap: 4px; }
 .upload-copy strong { overflow: hidden; color: #333044; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
-.upload-copy small { color: #92909f; font-size: 11px; }
+.upload-copy small { overflow: hidden; color: #92909f; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.selected-file-names { max-width: 570px; }
 .choose-file { margin-left: auto; padding: 8px 11px; border: 1px solid #e5e3ed; border-radius: 8px; background: white; color: #5f5b72; font-size: 11px; font-weight: 700; white-space: nowrap; }
 .primary-button, .secondary-button, .text-button, .approve-button { font: inherit; cursor: pointer; }
 .primary-button { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 0 20px; border: 0; border-radius: 10px; background: #7063d4; color: #fff; font-size: 13px; font-weight: 700; white-space: nowrap; box-shadow: 0 5px 13px rgba(112, 99, 212, 0.18); transition: background 150ms ease, transform 150ms ease; }
@@ -134,6 +135,15 @@
 .draft-panel { margin-bottom: 16px; border-color: #dcd7fb; box-shadow: 0 8px 26px rgba(87, 75, 166, 0.07); }
 .draft-heading { align-items: flex-start; }
 .draft-help { margin: 9px 0 18px; color: #777587; font-size: 12px; }
+.draft-list { display: grid; gap: 14px; }
+.draft-item { padding: 18px; border: 1px solid #eeecf5; border-radius: 12px; background: #fdfcff; }
+.draft-file-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 17px; }
+.draft-file-name { min-width: 0; display: flex; align-items: center; gap: 11px; }
+.file-mark { width: 34px; height: 34px; display: grid; place-items: center; flex: 0 0 34px; border-radius: 10px; background: #eeecff; color: #7568d0; font-size: 18px; }
+.file-label { color: #92909f; font-size: 9px; font-weight: 700; letter-spacing: .04em; }
+.draft-file-name h3 { max-width: 620px; overflow: hidden; margin: 3px 0 0; color: #373449; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.failed-chip { display: inline-flex; align-items: center; padding: 7px 11px; border-radius: 20px; background: #fbebeb; color: #b04f54; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.draft-error-message { margin: 0; padding: 12px 13px; border-radius: 8px; background: #fff5f3; color: #a84c3f; font-size: 11px; line-height: 1.6; }
 .review-chip, .approved-chip { display: inline-flex; align-items: center; padding: 7px 11px; border-radius: 20px; font-size: 11px; font-weight: 700; }
 .review-chip { background: #fff4df; color: #a96c1c; }
 .approved-chip { background: #e8f5ef; color: #317a60; }
@@ -149,6 +159,7 @@
 .draft-form > .review-toggle { display: flex; align-items: center; gap: 8px; color: #666274; font-size: 11px; cursor: pointer; }
 .review-toggle input { width: 15px; height: 15px; margin: 0; accent-color: #7063d4; }
 .draft-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 2px; padding-top: 15px; border-top: 1px solid #efedf5; }
+.draft-save-hint { color: #92909f; font-size: 10px; font-weight: 500; }
 .text-button { padding: 9px 0; border: 0; background: transparent; color: #777587; font-size: 11px; font-weight: 700; }
 .text-button:hover { color: #5348ac; }
 .raw-result { margin-top: 15px; padding-top: 13px; border-top: 1px solid #efedf5; color: #777587; font-size: 11px; }
@@ -206,6 +217,9 @@ tbody tr:last-child td { border-bottom: 0; }
   .draft-actions { align-items: stretch; flex-direction: column-reverse; }
   .draft-actions .primary-button { width: 100%; }
   .text-button { align-self: center; }
+  .draft-item { padding: 14px 12px; }
+  .draft-file-name h3 { max-width: 220px; }
+  .draft-save-hint { text-align: center; }
   .ledger-heading { align-items: flex-end; }
   .secondary-button { padding: 8px 9px; font-size: 10px; white-space: nowrap; }
 }
@@ -219,4 +233,5 @@ tbody tr:last-child td { border-bottom: 0; }
   .stat-card strong { font-size: 20px; }
   .step-pill { display: none; }
   .upload-copy strong { max-width: 165px; }
+  .selected-file-names { max-width: 175px; }
 }

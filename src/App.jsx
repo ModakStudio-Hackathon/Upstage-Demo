@@ -5,6 +5,7 @@ import './App.css';
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
 const CACHE_KEY = 'modak-ledger-v2';
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_FILES = 10;
 
 function getCachedReceipts() {
   try {
@@ -104,13 +105,24 @@ function errorMessage(error) {
   return error.response?.data?.detail || error.message || '요청을 처리하지 못했습니다.';
 }
 
+function isDraftReady(draft) {
+  return Boolean(
+    draft
+      && draft.payment_date
+      && draft.merchant_file.trim()
+      && draft.amount !== ''
+      && Number.isInteger(Number(draft.amount))
+      && draft.account_category.trim(),
+  );
+}
+
 function App() {
   const [receipts, setReceipts] = useState(getCachedReceipts);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [analysisDraft, setAnalysisDraft] = useState(null);
-  const [analysisResult, setAnalysisResult] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [analysisDrafts, setAnalysisDrafts] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+  const [savingDraftId, setSavingDraftId] = useState(null);
   const [savingReceiptId, setSavingReceiptId] = useState(null);
   const [isLoadingReceipts, setIsLoadingReceipts] = useState(true);
   const [apiConnected, setApiConnected] = useState(false);
@@ -150,90 +162,99 @@ function App() {
     reviewCount: receipts.filter((receipt) => receipt.status === '검토 필요').length,
     approvedCount: receipts.filter((receipt) => receipt.status === '승인').length,
   };
-  const canSaveDraft = Boolean(
-    analysisDraft
-      && analysisDraft.payment_date
-      && analysisDraft.merchant_file.trim()
-      && analysisDraft.amount !== ''
-      && Number.isInteger(Number(analysisDraft.amount))
-      && analysisDraft.account_category.trim(),
-  );
-
   const handleFileChange = (event) => {
-    const file = event.target.files?.[0] ?? null;
-    setSelectedFile(file);
-    setAnalysisDraft(null);
-    setAnalysisResult(null);
-    setError('');
+    const files = Array.from(event.target.files ?? []);
+    setSelectedFiles(files.slice(0, MAX_FILES));
+    setAnalysisDrafts([]);
+    setError(files.length > MAX_FILES ? `한 번에 최대 ${MAX_FILES}장까지 선택할 수 있습니다.` : '');
   };
 
   const handleAnalyze = async (event) => {
     event.preventDefault();
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       setError('영수증 사진을 선택해 주세요.');
       return;
     }
-    if (!selectedFile.type.startsWith('image/')) {
-      setError('JPG, PNG 등 이미지 파일을 선택해 주세요.');
+    const invalidFile = selectedFiles.find((file) => !file.type.startsWith('image/'));
+    if (invalidFile) {
+      setError(`${invalidFile.name}: JPG, PNG 등 이미지 파일을 선택해 주세요.`);
       return;
     }
-    if (selectedFile.size > MAX_IMAGE_SIZE) {
-      setError('이미지는 10MB 이하로 업로드해 주세요.');
+    const oversizedFile = selectedFiles.find((file) => file.size > MAX_IMAGE_SIZE);
+    if (oversizedFile) {
+      setError(`${oversizedFile.name}: 이미지는 10MB 이하로 업로드해 주세요.`);
       return;
     }
 
     setIsUploading(true);
     setError('');
-    setAnalysisDraft(null);
-    setAnalysisResult(null);
-    const formData = new FormData();
-    formData.append('file', selectedFile);
+    setAnalysisDrafts([]);
+    const completedDrafts = [];
+    setUploadProgress({ current: 0, total: selectedFiles.length });
 
-    try {
-      const { data } = await axios.post(`${API_BASE_URL}/receipts/analyze`, formData);
-      setAnalysisResult(data);
-      setAnalysisDraft(normalizeAnalysis(data, selectedFile.name));
-      setApiConnected(true);
-      setError('');
-    } catch (requestError) {
-      setError(`영수증 분석에 실패했습니다. ${errorMessage(requestError)}`);
-    } finally {
-      setIsUploading(false);
+    for (const [index, file] of selectedFiles.entries()) {
+      setUploadProgress({ current: index + 1, total: selectedFiles.length });
+      const formData = new FormData();
+      formData.append('file', file);
+      const id = `${Date.now()}-${index}`;
+
+      try {
+        const { data } = await axios.post(`${API_BASE_URL}/receipts/analyze`, formData);
+        completedDrafts.push({
+          id,
+          filename: file.name,
+          rawResult: data,
+          ...normalizeAnalysis(data, file.name),
+        });
+        setApiConnected(true);
+      } catch (requestError) {
+        completedDrafts.push({
+          id,
+          filename: file.name,
+          error: errorMessage(requestError),
+        });
+      }
+      setAnalysisDrafts([...completedDrafts]);
     }
+    setIsUploading(false);
   };
 
-  const updateDraft = (field, value) => {
-    setAnalysisDraft((draft) => ({ ...draft, [field]: value }));
+  const updateDraft = (id, field, value) => {
+    setAnalysisDrafts((drafts) => drafts.map((draft) => (
+      draft.id === id ? { ...draft, [field]: value } : draft
+    )));
   };
 
-  const handleSaveReceipt = async (event) => {
+  const handleSaveReceipt = async (event, draft) => {
     event.preventDefault();
-    if (!analysisDraft || !canSaveDraft) {
+    if (!isDraftReady(draft)) {
       setError('결제일, 가맹점, 금액, 계정과목을 확인해 주세요.');
       return;
     }
-    setIsSaving(true);
+    setSavingDraftId(draft.id);
     setError('');
     const payload = {
-      payment_date: analysisDraft.payment_date,
-      merchant_file: analysisDraft.merchant_file.trim(),
-      amount: Number(analysisDraft.amount),
-      account_category: analysisDraft.account_category.trim(),
-      review_status: analysisDraft.review_status,
-      reason: analysisDraft.reason.trim() || null,
+      payment_date: draft.payment_date,
+      merchant_file: draft.merchant_file.trim(),
+      amount: Number(draft.amount),
+      account_category: draft.account_category.trim(),
+      review_status: draft.review_status,
+      reason: draft.reason.trim() || null,
     };
     try {
       const { data } = await axios.post(`${API_BASE_URL}/receipts`, payload);
       setReceipts((current) => [receiptFromApi(data), ...current]);
-      setAnalysisDraft(null);
-      setAnalysisResult(null);
-      setSelectedFile(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      const remainingDrafts = analysisDrafts.filter((item) => item.id !== draft.id);
+      setAnalysisDrafts(remainingDrafts);
+      if (remainingDrafts.length === 0) {
+        setSelectedFiles([]);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
       setApiConnected(true);
     } catch (requestError) {
       setError(`장부 저장에 실패했습니다. ${errorMessage(requestError)}`);
     } finally {
-      setIsSaving(false);
+      setSavingDraftId(null);
     }
   };
 
@@ -343,8 +364,12 @@ function App() {
             <label className="upload-dropzone" htmlFor="receipt-file">
               <span className="upload-icon" aria-hidden="true">↑</span>
               <span className="upload-copy">
-                <strong>{selectedFile ? selectedFile.name : '영수증 사진을 선택하세요'}</strong>
-                <small>{selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(2)} MB` : 'JPG, PNG, HEIC · 최대 10MB'}</small>
+                <strong>{selectedFiles.length ? `${selectedFiles.length}장 선택됨` : '영수증 사진을 선택하세요'}</strong>
+                <small className="selected-file-names">
+                  {selectedFiles.length
+                    ? selectedFiles.map((file) => file.name).join(', ')
+                    : `JPG, PNG, HEIC · 파일당 최대 10MB · 한 번에 최대 ${MAX_FILES}장`}
+                </small>
               </span>
               <span className="choose-file">파일 선택</span>
               <input
@@ -352,15 +377,18 @@ function App() {
                 id="receipt-file"
                 type="file"
                 accept="image/*"
-                capture="environment"
+                multiple
                 onChange={handleFileChange}
+                disabled={isUploading}
               />
             </label>
-            <button type="submit" className="primary-button" disabled={isUploading || !selectedFile}>
-              {isUploading ? <><span className="spinner" />분석 중…</> : 'AI로 분석하기'}
+            <button type="submit" className="primary-button" disabled={isUploading || selectedFiles.length === 0}>
+              {isUploading
+                ? <><span className="spinner" />분석 중 {uploadProgress.current}/{uploadProgress.total}</>
+                : selectedFiles.length ? `${selectedFiles.length}장 AI 분석하기` : 'AI로 분석하기'}
             </button>
           </form>
-          <p className="privacy-note">사진은 분석을 위해 백엔드와 Upstage AI로 전송됩니다.</p>
+          <p className="privacy-note">사진은 한 장씩 백엔드와 Upstage AI로 전송됩니다. 분석 결과는 각각 확인 후 저장할 수 있습니다.</p>
         </section>
 
         {error && (
@@ -371,59 +399,78 @@ function App() {
           </div>
         )}
 
-        {analysisDraft && (
+        {analysisDrafts.length > 0 && (
           <section className="panel draft-panel">
             <div className="section-heading draft-heading">
               <div>
                 <p className="eyebrow">AI EXTRACTION</p>
-                <h2>분석 내용을 확인해 주세요</h2>
+                <h2>분석 결과 {analysisDrafts.length}건</h2>
               </div>
-              <span className={analysisDraft.review_status ? 'review-chip' : 'approved-chip'}>
-                {analysisDraft.review_status ? '검토 필요' : '승인'}
-              </span>
             </div>
-            <p className="draft-help">AI가 읽은 항목을 수정할 수 있습니다. 저장하면 장부에 등록됩니다.</p>
-            <form className="draft-form" onSubmit={handleSaveReceipt}>
-              <label>
-                <span>결제 일시</span>
-                <input type="datetime-local" value={analysisDraft.payment_date} onChange={(event) => updateDraft('payment_date', event.target.value)} required />
-              </label>
-              <label>
-                <span>가맹점</span>
-                <input type="text" value={analysisDraft.merchant_file} onChange={(event) => updateDraft('merchant_file', event.target.value)} required />
-              </label>
-              <label>
-                <span>결제 금액</span>
-                <div className="amount-input-wrap">
-                  <input type="number" min="0" step="1" value={analysisDraft.amount} onChange={(event) => updateDraft('amount', event.target.value)} placeholder="금액 입력" required />
-                  <span>원</span>
-                </div>
-              </label>
-              <label>
-                <span>계정과목</span>
-                <input type="text" value={analysisDraft.account_category} onChange={(event) => updateDraft('account_category', event.target.value)} placeholder="예: 복리후생비" required />
-              </label>
-              <label className="draft-reason">
-                <span>검토 메모</span>
-                <textarea rows="2" value={analysisDraft.reason} onChange={(event) => updateDraft('reason', event.target.value)} placeholder="필요한 내용을 입력하세요" />
-              </label>
-              <label className="review-toggle">
-                <input type="checkbox" checked={analysisDraft.review_status} onChange={(event) => updateDraft('review_status', event.target.checked)} />
-                담당자 검토가 필요합니다
-              </label>
-              <div className="draft-actions">
-                <button type="button" className="text-button" onClick={() => { setAnalysisDraft(null); setAnalysisResult(null); }}>
-                  분석 결과 닫기
-                </button>
-                <button type="submit" className="primary-button" disabled={isSaving || !canSaveDraft}>
-                  {isSaving ? '저장 중…' : '확인하고 장부에 저장'}
-                </button>
-              </div>
-            </form>
-            <details className="raw-result">
-              <summary>AI 원본 응답 보기</summary>
-              <pre>{JSON.stringify(analysisResult, null, 2)}</pre>
-            </details>
+            <p className="draft-help">각 항목을 확인하고 저장하세요. 한 파일의 분석이 실패해도 나머지 결과는 계속 표시됩니다.</p>
+            <div className="draft-list">
+              {analysisDrafts.map((draft) => (
+                <article className={`draft-item ${draft.error ? 'draft-item-error' : ''}`} key={draft.id}>
+                  <div className="draft-file-heading">
+                    <div className="draft-file-name">
+                      <span className="file-mark">▧</span>
+                      <div>
+                        <span className="file-label">영수증 사진</span>
+                        <h3 title={draft.filename}>{draft.filename}</h3>
+                      </div>
+                    </div>
+                    {draft.error
+                      ? <span className="failed-chip">분석 실패</span>
+                      : <span className={draft.review_status ? 'review-chip' : 'approved-chip'}>{draft.review_status ? '검토 필요' : '승인'}</span>}
+                  </div>
+                  {draft.error ? (
+                    <p className="draft-error-message">{draft.error}</p>
+                  ) : (
+                    <>
+                      <form className="draft-form" onSubmit={(event) => handleSaveReceipt(event, draft)}>
+                        <label>
+                          <span>결제 일시</span>
+                          <input type="datetime-local" value={draft.payment_date} onChange={(event) => updateDraft(draft.id, 'payment_date', event.target.value)} required />
+                        </label>
+                        <label>
+                          <span>가맹점</span>
+                          <input type="text" value={draft.merchant_file} onChange={(event) => updateDraft(draft.id, 'merchant_file', event.target.value)} required />
+                        </label>
+                        <label>
+                          <span>결제 금액</span>
+                          <div className="amount-input-wrap">
+                            <input type="number" min="0" step="1" value={draft.amount} onChange={(event) => updateDraft(draft.id, 'amount', event.target.value)} placeholder="금액 입력" required />
+                            <span>원</span>
+                          </div>
+                        </label>
+                        <label>
+                          <span>계정과목</span>
+                          <input type="text" value={draft.account_category} onChange={(event) => updateDraft(draft.id, 'account_category', event.target.value)} placeholder="예: 복리후생비" required />
+                        </label>
+                        <label className="draft-reason">
+                          <span>검토 메모</span>
+                          <textarea rows="2" value={draft.reason} onChange={(event) => updateDraft(draft.id, 'reason', event.target.value)} placeholder="필요한 내용을 입력하세요" />
+                        </label>
+                        <label className="review-toggle">
+                          <input type="checkbox" checked={draft.review_status} onChange={(event) => updateDraft(draft.id, 'review_status', event.target.checked)} />
+                          담당자 검토가 필요합니다
+                        </label>
+                        <div className="draft-actions">
+                          <span className="draft-save-hint">저장 후 장부 내역에 추가됩니다.</span>
+                          <button type="submit" className="primary-button" disabled={isUploading || savingDraftId !== null || !isDraftReady(draft)}>
+                            {savingDraftId === draft.id ? '저장 중…' : '확인하고 저장'}
+                          </button>
+                        </div>
+                      </form>
+                      <details className="raw-result">
+                        <summary>AI 원본 응답 보기</summary>
+                        <pre>{JSON.stringify(draft.rawResult, null, 2)}</pre>
+                      </details>
+                    </>
+                  )}
+                </article>
+              ))}
+            </div>
           </section>
         )}
 

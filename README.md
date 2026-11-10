@@ -18,7 +18,7 @@ Vite 개발 서버는 `/api` 요청을 백엔드로 전달합니다. 백엔드 �
 ## 연결 API
 
 - `GET /receipts`: 장부 목록을 불러옵니다.
-- `POST /receipts/analyze`: multipart의 `file` 필드로 사진을 보내고 AI 분석 JSON을 받습니다.
+- `POST /receipts/analyze`: multipart의 `file` 필드로 사진 한 장을 보내고 AI 분석 JSON을 받습니다. 화면에서는 한 번에 최대 10장을 선택하며, 백엔드에는 각 사진을 순서대로 요청합니다.
 - `POST /receipts`: 확인한 분석 초안을 장부에 저장합니다.
 - `PATCH /receipts/{receipt_id}`: 검토 항목을 승인합니다.
 
